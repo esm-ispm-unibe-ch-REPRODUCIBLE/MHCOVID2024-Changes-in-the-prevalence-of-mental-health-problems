@@ -5,4 +5,4 @@ The .xlsx files contain the data (outcomes and metadata) until March 15 2021, an
 Open and run the file MASTER file MHCOVID dichotomous analysis of longitudinal data.R
 This calls other scripts (for data cleaning and analysis) and produces results. 
 
-The two .Rmd files produce the results section and the Appendix in the publication. 
+The two .Rmd files produce the Results section and the Appendix in the publication. 
