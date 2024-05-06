@@ -1,0 +1,167 @@
+---
+title: "Changes in the prevalence of mental health problems during the first year of the pandemic: a systematic review and dose-response meta-analysis"
+author: "Georgia Salanti"
+date: "`r Sys.Date()`"
+output: html_notebook
+mainfont: Arial
+---
+
+```{r,message=F,echo=F,include=F}
+
+
+#Get functions
+source("util.R")
+
+### libraries
+library(meta)
+library(tidyr)
+library(tibble)
+library(stringr)
+library(readxl)
+library(grid)
+library(dplyr)
+library(rjags)
+library(Matrix)
+library(knitr)
+library(kableExtra)
+library(rms) 
+library(meta)
+library(devtools)
+library(dosresmeta)
+library(tools)
+library(metafor)
+library(rje)
+library(gtools)
+devtools::install_github("haozhu233/kableExtra")
+
+#obtain the data from subfolder 'in' and prepare them for analysis. 
+source("clean_dichotomous_data.R")
+data.longi<-data
+dataset<-ungroup(data.longi)
+
+```
+
+# Results
+
+The flow of study selection is shown in figure 1. Overall, we included `r length(table(data.longi$record_id))` studies with data from `r sum(data.longi$sample_size)` observations about `r length(table(data.longi$condition))` conditions and `r length((data.longi$record_id))` timepoints (see Appendix for a full list of the included studies and their characteristics). Only `r length(unique(data.longi$record_id[data.longi$previously.included==1]))` of those studies were part of our previous systematic review. The studies were conducted in `r length(table(data.longi$country))` different countries. The pre-pandemic data were collected as early as `r format(min((data.longi$timepoint)), format="%Y")`, while the most recent data were from `r format(max((data.longi$timepoint)), format="%m-%Y")`.\
+The median sample size across the `r length((data.longi$record_id))` timepoints was `r round(median((data.longi$sample_size)))` participants. The median of the mean participant age was `r round(median((data.longi$pop0_central_age),na.rm=T))` years (ranged from `r round(min((data.longi$pop0_central_age),na.rm=T))` to `r round(max((data.longi$pop0_central_age),na.rm=T))` years), and over half of the participants across all studies were women. The cumulative COVID-19 cases and deaths, the stringency, economic support and containment and health indices varied widely across time points (table 1). Most studies were repeated cross-sectional surveys. The risk of an unrepresentative sample and non-response bias was high or unclear in most studies. In contrast, most studies showed a low risk of information (table 2).
+
+```{r,echo=F }
+
+
+kable(
+  as.data.frame(cbind(rbind(
+  `No of participants`=c(length(dataset$sample_size),round(quantile(dataset$sample_size,c(0.5,0,1),na.rm=T))),
+  `Mean age (years)`=c(sum(!is.na(dataset$pop0_central_age)),quantile(dataset$pop0_central_age,c(0.5,0,1),na.rm=T)),
+  `Timepoints examined`=c(sum(!is.na(dataset$n_timepoints)),quantile(dataset$n_timepoints,c(0.5,0,1),na.rm=T)),
+  `Percentage of females (%)`=c(sum(!is.na(dataset$sex)),quantile(dataset$pop0_percent_female*100,c(0.5,0,1),na.rm=T)),
+  `GDP per capita in US$`=c(length(dataset$record_id),quantile(dataset$gdp_per_capita_2019,c(0.5,0,1),na.rm=T)),
+  `Gini index`=c(length(dataset$record_id),quantile(dataset$gini_2019,c(0.5,0,1),na.rm=T)),
+  `Days since first case`=c(length(dataset$record_id),quantile(dataset$days_after_first[dataset$is_prepandemic==0],c(0.5,0,1),na.rm=T)) ,
+  Stringengy=c(length(dataset$record_id),quantile(dataset$stringency[dataset$is_prepandemic==0],c(0.5,0,1),na.rm=T)),
+  `Cumulative cases`=c(length(dataset$record_id),quantile(dataset$confirmed_per_100000[dataset$is_prepandemic==0],c(0.5,0,1),na.rm=T)),
+  `Cumulative deaths`=c(length(dataset$record_id),quantile(dataset$deaths_per_100000[dataset$is_prepandemic==0],c(0.5,0,1),na.rm=T)) ))),
+ caption = "Table 1a: Characteristics of study participants, countries, and the COVID-19 pandemic", digits=0,
+   col.names = c("No. of timepoints","Median","Low","High")) %>%
+  
+  footnote(general = "Cumulative cases and deaths are per 100.000 people") %>%
+   kable_paper("striped", full_width = F) #%>%
+  #scroll_box(width = "500px", height = "200px") 
+
+  
+```
+
+```{r,echo=F }
+
+a<-forcebind.fun(
+  rbind(c("Population","","",""),
+  cbind.data.frame(dataset %>% group_by(population,record_id) %>% count() %>% group_by(population) %>% count(), dataset %>% group_by(population) %>% count() )),
+
+  rbind(c("Condition","","",""),
+  cbind.data.frame(dataset %>% group_by(condition,record_id) %>% count() %>% group_by(condition) %>% count(), dataset %>% group_by(condition) %>% count() )),
+
+  rbind(c("Design","","",""),
+  cbind.data.frame(dataset %>% group_by(study_design, record_id) %>% count() %>% group_by(study_design) %>% count(), dataset %>% group_by(study_design) %>% count())),
+ 
+  rbind(c("Risk of unrepresentative sample","","",""),
+  cbind.data.frame(dataset %>% group_by(rob_is_target_pop,record_id) %>% count() %>% group_by(rob_is_target_pop) %>% count(), dataset %>% group_by(rob_is_target_pop) %>% count() )),
+
+  rbind(c("Risk of information bias","","",""),
+  cbind.data.frame(dataset %>% group_by(rob_info_bias,record_id) %>% count() %>% group_by(rob_info_bias) %>% count(), dataset %>% group_by(rob_info_bias) %>% count() )),
+
+  rbind(c("Risk of non-response bias","","",""),
+  cbind.data.frame(dataset %>% group_by(rob_non_bias, record_id) %>% count() %>% group_by(rob_non_bias) %>% count(), dataset %>% group_by(rob_non_bias) %>% count() )),
+  
+  rbind(c("Country","","",""),
+  cbind.data.frame(dataset %>% group_by(country, record_id) %>% count() %>% group_by(country) %>% count(), dataset %>% group_by(country) %>% count() ))
+  
+)
+
+
+kable(a[,-3],
+      caption = "Table 1b: Characteristics of studies",
+      col.names = c("Subgroups","Number of studies","Number of timepoints")) %>%
+      kable_paper("striped", full_width = F) #%>%
+      #scroll_box(width = "500px", height = "600px") 
+```
+
+## Meta-analysis of pre- versus during-pandemic prevalence of mental health problems
+
+Of the `r length(table(data.longi$record_id))` included studies, `r length(table(data.preduring$record_id))` provided measurements before and during the pandemic and contributed `r length(data.preduring$record_id)` ORs to the pre-during meta-analysis. The summary ORs for each condition are shown in Figure 2.
+
+```{r message=FALSE, warning=FALSE, include=F}
+source("run_analysis longitudinal.R")
+
+
+```
+
+```{r echo=F, fig.fullwidth=TRUE, fig.height=15, fig.width=18}
+
+forest(meta.preduringIV,
+       xlab="OR for of people above the threshold",
+       smlab="OR",
+       print.I2=F,
+       lwd=1,
+       fs.test.effect.subgroup=0,
+       print.pval.Q=F,
+       lower.equi=0,
+       upper.equi=1,
+       just="right",
+       addrow=F,
+       overall=F,
+       overall.hetstat =F,
+       col.square="black",
+       col.by="black",
+       hetlab="",
+       fill.equi="aliceblue",
+       calcwidth.subgroup=T,
+       prediction=T,
+       text.random = "Random Effects",
+       text.predict = "Prediction interval",
+       calcwidth.pooled = F,
+       calcwidth.predict = F,
+       leftcols = c("authoryear","country","population", "event1","n1", "event2","n2","days_after_first2"),
+       leftlabs=c("Study","country","population", "Cases pre","N pre", "Cases during","N during", "Days since first case"),
+       subgroup.name="",
+       sortvar =days_after_first2,
+       test.subgroup =F)
+
+```
+
+**Figure 2:** *Meta-analysis of odds ratios (OR) for people above a threshold on a symptoms scale during the pandemic compared to before the pandemic. OR\>1 means that the odds of people above the threshold is larger during the pandemic.*
+
+There was substantial heterogeneity in in all conditions, as shown in the width of the prediction intervals. We found no evidence that heterogeneity could be explained by differences in the study methods and country characteristics: the scale used to measure the symptoms, age, sex, GDP per capital, Gini inequality index, or the study risk of bias (Appendix). There was limited evidence that the use of short versions of scales instead of longer (e.g. using PHQ-2 instead of PHQ-9) was associated with larger ORs, e.g., OR 5.29 from three studies using PHQ-2 vs 1.76 from four studies using PHQ-9).
+
+Because of large heterogeneity and preponderance of high risk of bias studies, the evidence is judged to be of low confidence for psychological distress, depression, and anxiety and very low for sleep disturbances, alcohol/substance abuse and mental wellbeing (because of additional high uncertainty due to few available studies).
+
+## Dose-response meta-analysis
+
+Dose-response meta-analyses were solely performed for anxiety, depression, and psychological distress, as only these conditions provided sufficient data spanning various timepoints. Figure 3 shows the trajectory of the OR as a function of the time in the pandemic, the stringency index, the cumulative number of cases and the cumulative number of deaths. The odds to have symptoms score above a threshold increased, on average, during the first two months after the first reported cases for the three conditions; thereafter they decrease or remain at a stable level but with large uncertainty. The odds of mental health problems also increased with cumulative number of cases and deaths reported, mostly presenting a non-linear association: the odds increased up to a point and then either decrease, on average, or remain stable. There was little evidence that the odds of increased problems in depression and anxiety increased after 60 reported cases and 10 deaths per 100.000 people. The odds of mental health issues also increased with greater stringency, although the shape is not consistent across the conditions.
+
+Sensitivity analyses excluding studies with much longer follow-up than the other studies (post-hoc) and after changing the location of the knots in the splines did not materially change the dose-response shapes (see Appendix).(see Appendix in <https://rpubs.com/geointheworld/APPENDIX_MHCOVID_dichotomous>).
+
+![***Figure 3** Dose-response meta-analysis plots of the odds ratios (OR) for depression as function of the days since the days of the first case in the study country, the stringency index, the cumulative number of cases and the cumulative number of deaths. Confidence intervals are shown as dashed lines. OR\>1 means that the odds of people above the threshold increases over time.*](out/Depression%20dose-response%20results.jpeg)
+
+![***Figure 4** Dose-response meta-analysis plots of the odds ratios (OR) for anxiety as a function of the days since the days of the first case in the study country, the stringency index, the cumulative number of cases and the cumulative number of deaths. Confidence intervals are shown as dashed lines. OR\>1 means that the odds of people above the threshold increases over time.*](out/Anxiety%20dose-response%20results.jpeg "Figure 1")
+
+![***Figure 5** Dose-response meta-analysis plots of the odds ratios (OR) for psychological distress as a function of the days since the days of the first case in the study country, the stringency index, the cumulative number of cases and the cumulative number of deaths. Confidence intervals are shown as dashed lines. OR\>1 means that the odds of people above the threshold increases over time.*](out/Psychological%20distress%20dose-response%20results.jpeg)

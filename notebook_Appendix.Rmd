@@ -1,0 +1,411 @@
+---
+title: "APPENDIX: Changes in prevalence of mental health problems during the first
+  year of the COVID 19 pandemic a systematic review and dose-response meta-analysis
+  with associated control measures"
+author: "Georgia Salanti"
+date: "`r Sys.Date()`"
+output: html_notebook
+mainfont: Arial
+---
+
+```{r,message=F,echo=F,include=F}
+
+
+#Get functions
+source("util.R")
+
+### libraries
+library(meta)
+library(tidyr)
+library(tibble)
+library(stringr)
+library(readxl)
+library(grid)
+library(dplyr)
+library(rjags)
+library(Matrix)
+library(knitr)
+library(kableExtra)
+library(rms) 
+library(meta)
+library(devtools)
+library(dosresmeta)
+library(tools)
+library(metafor)
+library(rje)
+library(gtools)
+library(netmeta)
+devtools::install_github("haozhu233/kableExtra")
+
+#obtain the data from subfolder 'in' and prepare them for analysis. 
+source("clean_dichotomous_data.R")
+dataset<-ungroup(data.longi)
+
+
+```
+
+# Exploration of heterogeneity in pre-during analysis
+
+```{r message=FALSE, warning=FALSE, include=F}
+source("run_analysis longitudinal.R")
+```
+
+## Using risk ratio as a summary measure
+
+The use of risk ratio (RR) instead of odds ratio (OR) did not materially impacted on the conclusions from the pre-during analysis. The impact of the pandemic on mental health appears, on average, smaller when RR is used, bu the heterogeneity is large with either measures.
+
+```{r echo=F, fig.fullwidth=TRUE, fig.height=18, fig.width=17}
+forest(meta.preduringIVRR,
+       xlab="RR for of people above the threshold",
+       smlab="RR",
+       print.I2=F,
+       lwd=1,
+       fs.test.effect.subgroup=0,
+       print.pval.Q=F,
+       lower.equi=0,
+       upper.equi=1,
+       just="right",
+       addrow=F,
+       overall=F,
+       overall.hetstat =F,
+       col.square="black",
+       col.by="black",
+       hetlab="",
+       fill.equi="aliceblue",
+       calcwidth.subgroup=T,
+       prediction=T,
+       text.random = "Random Effects",
+       text.predict = "Prediction interval",
+       calcwidth.pooled = F,
+       calcwidth.predict = F,
+       leftcols = c("authoryear","country","population", "event1","n1", "event2","n2","days_after_first2"),
+       leftlabs=c("Study","country","population", "Cases pre","N pre", "Cases during","N during", "Days since first case"),
+       subgroup.name="",
+       test.subgroup =F,
+       sortvar =days_after_first2)
+
+```
+
+## The use of different scales in depression, anxiety and psychological distress
+
+Several different scales with different thresholds have been used across the studies. This could contribute to heterogeneity. In the following forest plot we present the studies for the three most commonly studied conditions (depression, anxiety and psychological distress) synthesized by the scale they used to measure symptoms severity.
+
+```{r echo=F, fig.fullwidth=TRUE, fig.height=8, fig.width=11}
+
+
+forest(meta.preduringBinD,
+       xlab="OR for of people above the threshold (Depression)",
+       smlab="OR",
+       print.I2=F,
+       lwd=1,
+       fs.test.effect.subgroup=0,
+       print.pval.Q=F,
+       lower.equi=0,
+       upper.equi=1,
+       just="right",
+       addrow=F,
+       overall=T,
+       overall.hetstat =F,
+       col.square="black",
+       col.by="black",
+       hetlab="",
+       fill.equi="aliceblue",
+       calcwidth.subgroup=T,
+       prediction=T,
+       text.random = "Random Effects",
+       text.predict = "Prediction interval",
+       calcwidth.pooled = F,
+       calcwidth.predict = F,
+       leftcols = c("authoryear", "threshold"),
+       leftlabs=c("Study", "threshold"),
+       subgroup.name="",
+       sortvar=threshold,
+       test.subgroup =T)
+
+
+
+forest(meta.preduringBinA,
+       xlab="OR for of people above the threshold (Anxiety)",
+       smlab="OR",
+       print.I2=F,
+       lwd=1,
+       fs.test.effect.subgroup=0,
+       print.pval.Q=F,
+       lower.equi=0,
+       upper.equi=1,
+       just="right",
+       addrow=F,
+       overall=T,
+       overall.hetstat =F,
+       col.square="black",
+       col.by="black",
+       hetlab="",
+       fill.equi="aliceblue",
+       calcwidth.subgroup=T,
+       prediction=T,
+       text.random = "Random Effects",
+       text.predict = "Prediction interval",
+       calcwidth.pooled = F,
+       calcwidth.predict = F,
+       leftcols = c("authoryear", "threshold"),
+       leftlabs=c("Study", "threshold"),
+       subgroup.name="",
+       sortvar=threshold,
+       test.subgroup =T)
+
+
+
+forest(meta.preduringBinPD,
+       xlab="OR for of people above the threshold (Psychological Distress)",
+       smlab="OR",
+       print.I2=F,
+       lwd=1,
+       fs.test.effect.subgroup=0,
+       print.pval.Q=F,
+       lower.equi=0,
+       upper.equi=1,
+       just="right",
+       addrow=F,
+       overall=T,
+       overall.hetstat =F,
+       col.square="black",
+       col.by="black",
+       hetlab="",
+       fill.equi="aliceblue",
+       calcwidth.subgroup=T,
+       prediction=T,
+       text.random = "Random Effects",
+       text.predict = "Prediction interval",
+       calcwidth.pooled = F,
+       calcwidth.predict = F,
+       leftcols = c("authoryear", "threshold"),
+       leftlabs=c("Study", "threshold"),
+       subgroup.name="",
+       sortvar=threshold,
+       test.subgroup =T)
+
+
+```
+
+The forest plots indicate that, using short versions of scales (PHQ-2 and GAD-2 for depression and anxiety respectively) is associated with larger effect sizes that show important deterioration of the symptoms during the pandemic.
+
+## Sensitivity analyses including only adult populations and low risk of bias studies
+
+The forest plot below shows the synthesis of studies on adult populations (excluding studies in older participants) by condition. Due to to small number of studies excluded, there is no remarkable change int he summary estimates.
+
+```{r echo=F, fig.fullwidth=TRUE, fig.height=14, fig.width=7}
+
+forest(meta.preduringBinAdults,
+       xlab="OR for of people above the threshold",
+       smlab="OR",
+       print.I2=F,
+       lwd=1,
+       fs.test.effect.subgroup=0,
+       print.pval.Q=F,
+       lower.equi=0,
+       upper.equi=1,
+       just="right",
+       addrow=F,
+       overall=F,
+       overall.hetstat =F,
+       col.square="black",
+       col.by="black",
+       hetlab="",
+       fill.equi="aliceblue",
+       calcwidth.subgroup=T,
+       prediction=T,
+       text.random = "Random Effects",
+       text.predict = "Prediction interval",
+       calcwidth.pooled = F,
+       calcwidth.predict = F,
+       leftcols = c("authoryear"),
+       leftlabs=c("Study"),
+       subgroup.name="",
+       sortvar=threshold,
+       test.subgroup =F)
+```
+
+## Funnel Plot
+
+We included 10 studies that report data for depression.
+
+```{r,echo=F }
+funnel(meta.preduringBinD, common = TRUE, level = 0.95, contour = c(0.9, 0.95, 0.99), lwd = 2, cex = 1, pch = 16)
+```
+
+The funnel plot is asymmetric, but does not indicate that this might be associated with publication bias.
+
+## Meta-regression in studies for anxiety, depression, and psychological distress
+
+We performed meta-regression analyses in the the studies reporting results for depression, anxiety and psychological distress by examining the role of age, percentage of female participants, country GDP as recorded in 2019 and the GINI index. The table below shows the results for the summary ORs and the heterogeneity variance (assumed equal for the three conditions).
+
+```{r,echo=F }
+
+
+kable(
+  metaregResults,
+   digits = 2,
+   caption = "Meta-regression results for anxiety,depression, and psychological distress (pre-during analysis)",
+   col.names = c("","No. of timepoints","OR","95% low CI","95% high CI", "Heterogeneity variance")) %>%
+
+      kable_paper("striped", full_width = F) %>%
+      #scroll_box(width = "500px", height = "600px") 
+  footnote(general = "ORs for condition refer to a study with average age of participants 30, GDP 12389 and GINI index 25")
+
+  
+```
+
+Accounting for age and sex in the model decreases the common heterogeneity parameter; however, the number of studies is small compared to the number of parameters estimated (five in total) to be able to draw any important conclusion about their role.
+
+# Results from dose-response meta-analysis
+
+## Dose-response depression as a function of days since the first recorded case
+
+```{r echo=FALSE}
+summary(doseres_D$doseresDAYS)
+```
+
+## Dose-response depression as a function of stringency index
+
+```{r echo=FALSE}
+summary(doseres_D$doseresSTR)
+```
+
+## Dose-response depression as a function of log-cases per 10.000 people
+
+```{r echo=FALSE}
+summary(doseres_D$doseresCASE)
+```
+
+## Dose-response depression as a function of log-deaths per 10.000 people
+
+```{r echo=FALSE}
+summary(doseres_D$doseresDEATH)
+```
+
+## Dose-response anxiety as a function of days since the first recorded case
+
+```{r echo=FALSE}
+summary(doseres_A$doseresDAYS)
+```
+
+## Dose-response anxiety as a function of stringency index
+
+```{r echo=FALSE}
+summary(doseres_A$doseresSTR)
+```
+
+## Dose-response anxiety as a function of log-cases per 10.000 people
+
+```{r echo=FALSE}
+summary(doseres_A$doseresCASE)
+```
+
+## Dose-response anxiety as a function of log-deaths per 10.000 people
+
+```{r echo=FALSE}
+summary(doseres_A$doseresDEATH)
+```
+
+## Dose-response psychological distress as a function of days since the first recorded case
+
+```{r echo=FALSE}
+summary(doseres_PD$doseresDAYS)
+```
+
+## Dose-response psychological distress as a function of stringency index
+
+```{r echo=FALSE}
+summary(doseres_PD$doseresSTR)
+```
+
+## Dose-response psychological distress as a function of log-cases per 10.000 people
+
+```{r echo=FALSE}
+summary(doseres_PD$doseresCASE)
+```
+
+## Dose-response psychological distress as a function of log-deaths per 10.000 people
+
+```{r echo=FALSE}
+summary(doseres_PD$doseresDEATH)
+```
+
+# Sensitivity analysis for dose-response meta-analysis
+
+## **Excluding a study with very long follow-up**
+
+In dose-response associated for depression and anxiety there was a study by Herrera 2021 with follow-up 252 days. The following graphs show the updated dose-response associations when this study is excluded from the analysis. Note that there were several studies reporting psychological distress with follow-up more than 200 days.
+
+```{r echo=FALSE}
+out=data.longi %>% filter(condition=="Depression") %>% filter(days_after_first>200)
+data.longi.condition=data.longi %>% filter(condition=="Depression") %>% filter(record_id!=out$record_id)
+
+dosedata=createdatasetdoseresponse.fun(data.longi.condition,diagnosed,sample_size,record_id,days_after_first,nameoflogOR="logOR",nameofselogOR="selogOR")
+dosedata$type<-"ir"   
+knots = quantile(dosedata$days_after_first,c(0.20,0.5,0.8))
+doseresDAYS = dosresmeta(logOR ~ rcs(days_after_first,knots), record_id, data = dosedata,
+                         cases = diagnosed, n = sample_size,
+                         type = type, se = selogOR, proc = "1stage")
+
+
+newdata = data.frame(days_after_first = seq(0,max(data.longi.condition$days_after_first,na.rm=T)))
+xref = 0
+with(predict(doseresDAYS, newdata, xref, exp = TRUE), {
+  plot(get("rcs(days_after_first, knots)days_after_first"), pred, log = "y", type = "l",lwd=2, 
+       xlim = c(0, max(data.longi.condition$days_after_first,na.rm=T)), ylim = c(0.6,7),
+       xlab = expression("Days since"~'the first case'), ylab = expression("OR for depression (up to 150 days)"))
+  matlines(get("rcs(days_after_first, knots)days_after_first"), cbind(ci.ub, ci.lb),
+           col = 1, lty = "dashed")
+})
+with(dosedata, rug(days_after_first, quiet = TRUE))
+abline(h=1,col=4,lty=3)
+```
+
+```{r echo=FALSE}
+### Anxiety ------
+out=data.longi %>% filter(condition=="Anxiety") %>% filter(days_after_first>200)
+data.longi.condition=data.longi %>% filter(condition=="Anxiety") %>% filter(record_id!=out$record_id)
+
+dosedata=createdatasetdoseresponse.fun(data.longi.condition,diagnosed,sample_size,record_id,days_after_first,nameoflogOR="logOR",nameofselogOR="selogOR")
+dosedata$type<-"ir"   
+knots = quantile(dosedata$days_after_first,c(0.20,0.5,0.8))
+doseresDAYS = dosresmeta(logOR ~ rcs(days_after_first,knots), record_id, data = dosedata,
+                         cases = diagnosed, n = sample_size,
+                         type = type, se = selogOR, proc = "1stage")
+
+
+newdata = data.frame(days_after_first = seq(0,max(data.longi.condition$days_after_first,na.rm=T)))
+xref = 0
+with(predict(doseresDAYS, newdata, xref, exp = TRUE), {
+  plot(get("rcs(days_after_first, knots)days_after_first"), pred, log = "y", type = "l",lwd=2, 
+       xlim = c(0, max(data.longi.condition$days_after_first,na.rm=T)), ylim = c(0.6,7),
+       xlab = expression("Days since"~'the first case'), ylab = expression("OR for anxiety (up to 150 days)"))
+  matlines(get("rcs(days_after_first, knots)days_after_first"), cbind(ci.ub, ci.lb),
+           col = 1, lty = "dashed")
+})
+with(dosedata, rug(days_after_first, quiet = TRUE))
+abline(h=1,col=4,lty=3)
+
+
+```
+
+## **Sensitivity to knot locations**
+
+We chose two different knot location: closer to the median and more far apart from the median. Due to the small number of studies we could not explore the role of the number of knots.
+
+### **Knots at 30%, 50% and 70% quintiles**
+
+![**Appendix Figure** Dose-response meta-analysis plots of the odds ratios (OR) for depression as function of the days since the days of the first case in the study country, the stringency index, the cumulative number of cases and the cumulative number of deaths. Confidence intervals are shows as dashed lines. OR\>1 means that the odds of people above the threshold increases over time.](out/Depression%20knots%20closer%20dose-response%20results.jpeg)
+
+![**Appendix Figure** Dose-response meta-analysis plots of the odds ratios (OR) for anxiety as a function of the days since the days of the first case in the study country, the stringency index, the cumulative number of cases and the cumulative number of deaths. Confidence intervals are shows as dashed lines. OR\>1 means that the odds of people above the threshold increases over time.](out/Anxiety%20knots%20closer%20dose-response%20results.jpeg "Figure 1")
+
+![**Appendix Figure** Dose-response meta-analysis plots of the odds ratios (OR) for psychological distress as a function of the days since the days of the first case in the study country, the stringency index, the cumulative number of cases and the cumulative number of deaths. Confidence intervals are shows as dashed lines. OR\>1 means that the odds of people above the threshold increases over time.](out/Psychological%20distress%20knots%20closer%20dose-response%20results.jpeg)
+
+## **Knots at 10%, 50% and 90% quintiles**
+
+![**Appendix Figure** Dose-response meta-analysis plots of the odds ratios (OR) for depression as function of the days since the days of the first case in the study country, the stringency index, the cumulative number of cases and the cumulative number of deaths. Confidence intervals are shows as dashed lines. OR\>1 means that the odds of people above the threshold increases over time.](out/Depression%20knots%20further%20dose-response%20results.jpeg)
+
+![**Appendix Figure** Dose-response meta-analysis plots of the odds ratios (OR) for anxiety as a function of the days since the days of the first case in the study country, the stringency index, the cumulative number of cases and the cumulative number of deaths. Confidence intervals are shows as dashed lines. OR\>1 means that the odds of people above the threshold increases over time.](out/Anxiety%20knots%20further%20dose-response%20results.jpeg "Figure 1")
+
+![**Appendix Figure** Dose-response meta-analysis plots of the odds ratios (OR) for psychological distress as a function of the days since the days of the first case in the study country, the stringency index, the cumulative number of cases and the cumulative number of deaths. Confidence intervals are shows as dashed lines. OR\>1 means that the odds of people above the threshold increases over time.](out/Psychological%20distress%20knots%20further%20dose-response%20results.jpeg)
