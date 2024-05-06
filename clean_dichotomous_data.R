@@ -8,10 +8,10 @@
 
 #read data--------
 
-outcomes1<- read_excel("in/outcomes.xlsx", na = "NA" )#data until March 2021
-metadata1 <- read_excel("in/metadata.xlsx", na = "NA" )#data until March 2021
-outcomes2 <- read_excel("in/outcomes_wave2.xlsx", na = "NA" )#data from March 2021 to August 2021
-metadata2 <- read_excel("in/metadata_wave2.xlsx", na = "NA" )#data from March 2021 to August 2021
+outcomes1<- read_excel("outcomes.xlsx", na = "NA" )#data until March 2021
+metadata1 <- read_excel("metadata.xlsx", na = "NA" )#data until March 2021
+outcomes2 <- read_excel("outcomes_wave2.xlsx", na = "NA" )#data from March 2021 to August 2021
+metadata2 <- read_excel("metadata_wave2.xlsx", na = "NA" )#data from March 2021 to August 2021
 metadata2<-metadata2 %>% rename(author_1=first_author)
 
 
